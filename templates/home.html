@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+ 
+{% block page_content %}
+    <a href="{{ url_for('serve_add_entry') }}"><button>+</button></a>
+    <div id="contents">
+        {% for _title, entry, id in titles_entries_ids %}
+        <a href="{{ url_for('serve_entry', _id=id)}}"<h2>{{_title}}</h2></a>
+        <p>{{entry}}</p>
+        {% endfor %}
+    </div> 
+{% endblock %} 

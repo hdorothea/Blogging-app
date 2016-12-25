@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+ 
+{% block page_content %}
+<div class=navigation>
+    <a href="{{ url_for('serve_register') }}">register</a>
+    <a href="{{ url_for('serve_login') }}">login</a>
+</div>    
+{% endblock %} 

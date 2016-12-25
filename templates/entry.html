@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+ 
+{% block page_content %}
+<a href="{{ url_for('serve_home') }}">Home</a>
+    <h1> {{_title}} </h1>
+    <p> {{entry}} </p>
+{% endblock %} 
