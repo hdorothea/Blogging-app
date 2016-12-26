@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, g, session, redirect, url_for
+from flask.ext.login import LoginManager, login_user, UserMixin, current_user
 from flask.ext.bootstrap import Bootstrap
 import os
 import sqlite3
@@ -6,12 +7,35 @@ from werkzeug import check_password_hash, generate_password_hash
 from contextlib import closing
 
 
-
+login_manager = LoginManager()
+login_manager.session_protection = 'strong'
+login_manager.login_view = 'login'
 app = Flask(__name__)
+login_manager.init_app(app)
 app.secret_key = 'super secret key'
 bootstrap = Bootstrap(app)
 DATABASE = os.path.join(app.root_path, 'blog.db')
 app.config.from_object(__name__)
+
+class User(UserMixin):
+    
+    def __init__(self, username):
+        # i am trying to implement the same thing as in 'flask web development' but without an orm
+        # check if the user who tries to login exists 
+        self.username = username
+        if not self.get_id():
+            raise ValueError('No user with that name exists')
+
+
+    def get_id(self):
+        cursor = get_db().cursor()
+        self.id = cursor.execute("SELECT id FROM users WHERE username=?", [self.username]).fetchone()[0]
+        return self.id
+
+@login_manager.user_loader
+def load_user(user_id):
+    cursor = get_db().cursor() 
+    return User(cursor.execute("SELECT username FROM users WHERE id=?", [user_id]).fetchone()[0])
 
 
 def init_db():
@@ -37,7 +61,7 @@ def get_db():
 def get_user_id(username):
     cursor = get_db().cursor() 
     return cursor.execute("SELECT id FROM users WHERE username=?", [username]).fetchone()[0]
-    
+
 
 def connect_db():
     return sqlite3.connect(app.config['DATABASE'])
@@ -79,13 +103,20 @@ def serve_add_entry():
 
 @app.route("/login", methods=['POST',])
 def do_login():
-    session['user_id'] = get_user_id(request.form['username'])
-    return redirect(url_for("serve_home"))
+    cursor = get_db().cursor()
+    if check_password_hash(cursor.execute('''SELECT password_hash FROM users WHERE username=?''', [request.form['username']]).fetchone()[0], request.form['password']):
+        try:
+            user = User(request.form['username'])
+        except ValueError:
+            return 'Wrong username'
+        # login_user(user, request.form['remember_me'])
+        return redirect(url_for("serve_home"))
+    return "Wrong username or password"
 
 
 @app.route("/home")
 def serve_home():
-    titles_entries_ids = get_titles_entries_ids(session['user_id'])  
+    titles_entries_ids = get_titles_entries_ids(current_user.get_id())  
     return render_template("home.html", titles_entries_ids=titles_entries_ids) 
 
 
